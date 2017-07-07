@@ -16,6 +16,9 @@
         socket.on('message', function(msg) {
             console.log(msg);
         });
+        socket.on('auth', function(msg) {
+            console.log('test', msg)
+        });
     });
 </script>
 

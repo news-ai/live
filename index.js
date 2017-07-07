@@ -2,38 +2,41 @@ var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
+var Q = require('q');
 
 app.get('/', function(req, res) {
     res.sendFile(__dirname + '/index.html');
 });
 
+function validateUser(userId, accessToken) {
+    var deferred = Q.defer();
+
+    return deferred.promise;
+}
+
 function generatePageTeamIdHash(page, teamId) {
-    // body...
+    
 }
 
 io.on('connection', function(socket) {
     // On authentication connection (Initial connection)
-    console.log(socket.id)
-    socket.on('auth', function(msg) {
-        console.log(msg);
-
-        var authSuccessful = false;
-
+    socket.on('auth', function(authDetails) {
         // Validate if their authentication is valid
+        validateUser(authDetails.userId, authDetails.accessToken).then(function(status) {
+            // Join the current page they are on (room)
+            // Hash of their current page and team id
+            var roomName = generatePageTeamIdHash(authDetails.page, authDetails.teamId);
+            socket.join(roomName);
 
-        // If it is not valid then disconnect their socket
-        // and message them back
-        if (!authSuccessful) {
+            // Respond back to the client that their
+            // Authentication is successful
+            socket.json.send({'Status': 'Success'});
+        }, function(error) {
+            // If it is not valid then disconnect their socket
+            // And message them back
             socket.json.send({'Status': 'Failure'});
             socket.disconnect(true);
-        }
-
-        // Join the current page they are on (room)
-        // Hash of their current page and team id
-
-        // Respond back to the client that their authentication
-        // is successful
-        // socket.json.send({ your : 'data' });
+        });
     });
 
     // Listens to things when they are changed

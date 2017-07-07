@@ -4,6 +4,7 @@
   "description": "NewsAI Live Notifications",
   "dependencies": {
     "express": "^4.15.2",
+    "q": "^1.5.0",
     "socket.io": "^1.7.3"
   },
   "scripts": {

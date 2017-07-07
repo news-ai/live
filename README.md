@@ -2,6 +2,17 @@
 
 Websocket server to help sync API data to Tabulae.
 
+### Authentication
+
+```
+{
+    "userId": "4000",
+    "accessToken": "a1b2c3",
+    "teamId": "4000".
+    "page": ""
+}
+```
+
 ### Change schema
 
 Contact change
