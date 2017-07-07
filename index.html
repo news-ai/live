@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
+<script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+<script>
+    $(function() {
+        var socket = io();
+
+        var authDetails = {
+          'userId': '',
+          'authToken': '',
+          'teamId': ''
+        };
+
+        socket.emit('auth', authDetails);
+        socket.on('message', function(msg) {
+            console.log(msg);
+        });
+    });
+</script>
+
+</html>
