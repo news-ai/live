@@ -6,19 +6,46 @@
     $(function() {
         var socket = io();
 
-        var authDetails = {
-          'userId': '5749563331706880',
-          'authToken': '5749563331706880Uv38ByGCZU8WP18PmmIdcpVmx00QA3xNe7sEB9Hixkk=',
-          'teamId': '5178017471004672',
-          'page': 'https://tabulae.newsai.co/'
-        };
-
-        socket.emit('auth', authDetails);
-        socket.on('message', function(msg) {
-            console.log(msg);
+        // Connect to socket
+        socket.on('connect', function() {
+            var authDetails = {
+                'userId': '5749563331706880',
+                'authToken': '5749563331706880Uv38ByGCZU8WP18PmmIdcpVmx00QA3xNe7sEB9Hixkk=',
+                'teamId': '5178017471004672',
+                'page': 'https://tabulae.newsai.co/'
+            };
+            socket.emit('auth', authDetails);
         });
-        socket.on('auth', function(msg) {
-            console.log('test', msg)
+
+        // Get messages coming from socket
+        socket.on('message', function(msg) {
+            if (msg.type === 'auth') {
+                // Could not connect to socket
+                if (msg.status === 'failure') {
+                    console.log('Failed to authenticate');
+                } else {
+                    // Fake page change
+                    var fakePageChange = {
+                        'resourceName': 'page',
+                        'page': 'https://tabulae.newsai.co/tables/5326642465472512',
+                        'teamId': '5178017471004672'
+                    };
+                    socket.emit('change', fakePageChange);
+
+                    // Fake contact change
+
+                    // Fake list change
+                }
+            } else {
+                // Messages that come in when other things are changing
+                console.log(msg);
+            }
+        });
+
+        // On disconnect events
+        socket.on('disconnect', function() {
+            // Re-authenticate
+            console.log('disconnected:', socket.connected);
         });
     });
 </script>
