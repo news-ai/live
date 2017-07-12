@@ -128,7 +128,7 @@ io.on('connection', function(socket) {
             var userIdHash = 'user_' + authDetails.userId;
             client.get(userIdHash, function (err, reply) {
                 var socketIds = socket.id;
-                if (!err) {
+                if (reply) {
                     socketIds = reply.toString() + ',' + socketIds;
                 }
                 client.set(userIdHash, socketIds);
@@ -181,6 +181,35 @@ io.on('connection', function(socket) {
         // Tell everyone in that particular room that list/contact change has happened
         io.to(changeDetails.teamId).emit('message', changeDetails);
         io.to(roomName).emit('message', changeDetails);
+    });
+
+    socket.on('disconnect', function() {
+        // Remove socketId => userId key
+        var socketIdHash = 'socket_' + socket.id;
+        client.get(socketIdHash, function (err, socketIdReplys) {
+            if (!err) {
+                // Remove socketId in userId => socketIds[]
+                var userId = socketIdReplys.toString();
+
+                var userIdHash = 'user_' + userId;
+                client.get(userIdHash, function (err, userIdReply) {
+                    if (!err) {
+                        var socketIds = userIdReply.toString();
+                        socketIds = socketIds.split(',');
+
+                        var index = socketIds.indexOf(socket.id);
+                        if (index > -1) {
+                            socketIds.splice(index, 1);
+                            socketIds = socketIds.join(',');
+                            client.set(userIdHash, socketIds);
+                        }
+
+                        // remove socketId => userId
+                        client.del(socketIdHash);
+                    }
+                });
+            }
+        });
     });
 });
 
