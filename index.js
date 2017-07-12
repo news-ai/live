@@ -37,7 +37,7 @@ function socketIdToUserIds(socketId) {
     var deferred = Q.defer();
 
     var socketIdHash = 'socket_' + socketId;
-    client.get(socketIdHash, function (err, reply) {
+    client.get(socketIdHash, function(err, reply) {
         if (err) {
             deferred.resolve('');
         }
@@ -52,7 +52,7 @@ function userIdToSocketId(userId) {
     var deferred = Q.defer();
 
     var userIdHash = 'user_' + userId;
-    client.get(userIdHash, function (err, reply) {
+    client.get(userIdHash, function(err, reply) {
         if (err) {
             deferred.resolve('');
         }
@@ -126,7 +126,7 @@ io.on('connection', function(socket) {
             // Set redis for user-specific notifications
             // userId => socketIds[]
             var userIdHash = 'user_' + authDetails.userId;
-            client.get(userIdHash, function (err, reply) {
+            client.get(userIdHash, function(err, reply) {
                 var socketIds = socket.id;
                 if (reply) {
                     socketIds = reply.toString() + ',' + socketIds;
@@ -186,13 +186,13 @@ io.on('connection', function(socket) {
     socket.on('disconnect', function() {
         // Remove socketId => userId key
         var socketIdHash = 'socket_' + socket.id;
-        client.get(socketIdHash, function (err, socketIdReplys) {
+        client.get(socketIdHash, function(err, socketIdReplys) {
             if (!err) {
                 // Remove socketId in userId => socketIds[]
                 var userId = socketIdReplys.toString();
 
                 var userIdHash = 'user_' + userId;
-                client.get(userIdHash, function (err, userIdReply) {
+                client.get(userIdHash, function(err, userIdReply) {
                     if (!err) {
                         var socketIds = userIdReply.toString();
                         socketIds = socketIds.split(',');
@@ -213,6 +213,8 @@ io.on('connection', function(socket) {
     });
 });
 
-http.listen(port, function() {
-    console.log('listening on *:' + port);
+client.flushall(function(err, succeeded) {
+    http.listen(port, function() {
+        console.log('listening on *:' + port);
+    });
 });
