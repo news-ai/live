@@ -1,22 +1,66 @@
 'use strict';
 
-var elasticsearch = require('elasticsearch');
+// Import external libraries
 var app = require('express')();
+var Q = require('q');
+
+// Import databases
+var elasticsearch = require('elasticsearch');
+var redis = require('redis');
+
+// Set up Express
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
-var Q = require('q');
 
-// Instantiate a elasticsearch client
+// Instantiate a elasticsearch/redis client
+var client = redis.createClient();
 var elasticSearchClient = new elasticsearch.Client({
     host: 'https://newsai:XkJRNRx2EGCd6@search.newsai.org',
-    // log: 'trace',
     rejectUnauthorized: false
 });
 
 app.get('/', function(req, res) {
     res.sendFile(__dirname + '/index.html');
 });
+
+app.post('/email', function(req, res) {
+    // Check if user is online
+
+    // If the user is not online then we add them
+    // to redis, and notify them when they come
+    // online
+});
+
+// map of socketId => userId
+function socketIdToUserIds(socketId) {
+    var deferred = Q.defer();
+
+    var socketIdHash = 'socket_' + socketId;
+    client.get(socketIdHash, function (err, reply) {
+        if (err) {
+            deferred.resolve('');
+        }
+        deferred.resolve(reply.toString());
+    });
+
+    return deferred.promise;
+}
+
+// map of userId => socketId
+function userIdToSocketId(userId) {
+    var deferred = Q.defer();
+
+    var userIdHash = 'user_' + userId;
+    client.get(userIdHash, function (err, reply) {
+        if (err) {
+            deferred.resolve('');
+        }
+        deferred.resolve(reply.toString());
+    });
+
+    return deferred.promise;
+}
 
 function validateUser(userId, authToken) {
     var deferred = Q.defer();
@@ -78,6 +122,24 @@ io.on('connection', function(socket) {
                 'type': 'auth',
                 'status': 'success'
             });
+
+            // Set redis for user-specific notifications
+            // userId => socketIds[]
+            var userIdHash = 'user_' + authDetails.userId;
+            client.get(userIdHash, function (err, reply) {
+                var socketIds = socket.id;
+                if (!err) {
+                    socketIds = reply.toString() + ',' + socketIds;
+                }
+                client.set(userIdHash, socketIds);
+            });
+
+            // socketId => userId
+            var socketIdHash = 'socket_' + socket.id;
+            client.set(socketIdHash, authDetails.userId);
+
+            // Check if there are any pending notifications
+            // for the user that is logged in
         }, function(error) {
             // If it is not valid then disconnect their socket
             // And message them back
@@ -110,17 +172,15 @@ io.on('connection', function(socket) {
             }
 
             // Join a team room - so when lists are changed we can
-            // tell people in a team
+            // tell people in a team what people are doing
             if (changeDetails.teamId && changeDetails.teamId !== '') {
-                socket.join(teamId);
+                socket.join(changeDetails.teamId);
             }
-        } else if (changeDetails.resouceName === 'list') {
-            // Tell everyone in that particular room that list change has happened
-        } else if (changeDetails.resouceName === 'contact') {
-            // Tell everyone in that particular room that contact change has happened
         }
 
-        io.to(roomName).emit('message', 'some event');
+        // Tell everyone in that particular room that list/contact change has happened
+        io.to(changeDetails.teamId).emit('message', changeDetails);
+        io.to(roomName).emit('message', changeDetails);
     });
 });
 

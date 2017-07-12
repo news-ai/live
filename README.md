@@ -13,6 +13,19 @@ Websocket server to help sync API data to Tabulae.
 }
 ```
 
+### Notifications
+
+Email notification
+
+```
+{
+    "type": "email",
+    "userId": "4000",
+    "resourceId": "4000",
+    "resourceCategory": "open"
+}
+```
+
 ### Change schema
 
 Contact change
