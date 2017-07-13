@@ -8,7 +8,7 @@ Websocket server to help sync API data to Tabulae.
 {
     "userId": "4000",
     "accessToken": "a1b2c3",
-    "teamId": "4000".
+    "teamId": "4000",
     "page": "https://tabulae.newsai.co/"
 }
 ```

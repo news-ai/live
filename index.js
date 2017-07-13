@@ -3,6 +3,7 @@
 // Import external libraries
 var app = require('express')();
 var Q = require('q');
+var bodyParser = require('body-parser');
 
 // Import databases
 var elasticsearch = require('elasticsearch');
@@ -20,16 +21,52 @@ var elasticSearchClient = new elasticsearch.Client({
     rejectUnauthorized: false
 });
 
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+  extended: true
+}));
+
 app.get('/', function(req, res) {
     res.sendFile(__dirname + '/index.html');
 });
 
 app.post('/email', function(req, res) {
+    var data = req.body;
     // Check if user is online
+    userIdToSocketIds(data.userId).then(function(socketIds){
+        // If the user is not online then we add them
+        // to redis, and notify them when they come
+        // online
+        if (socketIds === '') {
+            // Save it for when the user is back
+            console.log(data);
 
-    // If the user is not online then we add them
-    // to redis, and notify them when they come
-    // online
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({
+                data: data
+            }));
+            return;
+        } else {
+            // Send the notification since they are connected
+            // We will message the first one since it will
+            // be the newest one
+            socketIds = socketIds.split(',');
+            var last_socket_id = socketIds[socketIds.length - 1];
+            io.sockets.connected[last_socket_id].json.send(data);
+
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify({
+                data: data
+            }));
+            return;
+        }
+    }, function(error) {
+        res.setHeader('Content-Type', 'application/json');
+        res.send(JSON.stringify({
+            data: error
+        }));
+        return;
+    });
 });
 
 // map of socketId => userId
@@ -48,15 +85,15 @@ function socketIdToUserIds(socketId) {
 }
 
 // map of userId => socketId
-function userIdToSocketId(userId) {
+function userIdToSocketIds(userId) {
     var deferred = Q.defer();
 
     var userIdHash = 'user_' + userId;
     client.get(userIdHash, function(err, reply) {
-        if (err) {
-            deferred.resolve('');
+        if (reply) {
+            deferred.resolve(reply.toString());
         }
-        deferred.resolve(reply.toString());
+        deferred.resolve('');
     });
 
     return deferred.promise;
@@ -191,6 +228,8 @@ io.on('connection', function(socket) {
                 // Remove socketId in userId => socketIds[]
                 var userId = socketIdReplys.toString();
 
+                // Update userId => socketIds[] field
+                // Remove the socket that has been removed
                 var userIdHash = 'user_' + userId;
                 client.get(userIdHash, function(err, userIdReply) {
                     if (!err) {
@@ -201,7 +240,16 @@ io.on('connection', function(socket) {
                         if (index > -1) {
                             socketIds.splice(index, 1);
                             socketIds = socketIds.join(',');
-                            client.set(userIdHash, socketIds);
+
+                            // If socketIds are not empty then we
+                            // update userId if not then we
+                            // remove userId since the user has no
+                            // more active connections
+                            if (socketIds !== '') {
+                                client.set(userIdHash, socketIds);
+                            } else {
+                                client.del(userIdHash);
+                            }
                         }
 
                         // remove socketId => userId
