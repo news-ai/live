@@ -39,13 +39,23 @@ app.post('/email', function(req, res) {
         // online
         if (socketIds === '') {
             // Save it for when the user is back
-            console.log(data);
+            var emailNotificationHash = 'email_notification_' + data.emailId;
+            client.hmset(emailNotificationHash, data);
 
-            res.setHeader('Content-Type', 'application/json');
-            res.send(JSON.stringify({
-                data: data
-            }));
-            return;
+            var userNotificationHash = 'user_notification_' + data.userId;
+            client.get(userNotificationHash, function(err, unsentUserNotifications) {
+                var newUserNotifications = data.emailId;
+                if (unsentUserNotifications) {
+                    newUserNotifications = unsentUserNotifications.toString() + ',' + newUserNotifications;
+                }
+                client.set(userNotificationHash, newUserNotifications);
+
+                res.setHeader('Content-Type', 'application/json');
+                res.send(JSON.stringify({
+                    data: data
+                }));
+                return;
+            });
         } else {
             // Send the notification since they are connected
             // We will message the first one since it will
@@ -177,6 +187,14 @@ io.on('connection', function(socket) {
 
             // Check if there are any pending notifications
             // for the user that is logged in
+            var userNotificationHash = 'user_notification_' + authDetails.userId;
+            client.get(userNotificationHash, function(err, reply) {
+                if (reply) {
+                    var stringReply = reply.toString();
+                    var notificationIds = reply.split(',');
+                    console.log(notificationIds);
+                }
+            });
         }, function(error) {
             // If it is not valid then disconnect their socket
             // And message them back
