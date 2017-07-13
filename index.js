@@ -112,7 +112,7 @@ app.get('/', function(req, res) {
     res.sendFile(__dirname + '/index.html');
 });
 
-app.post('/email', function(req, res) {
+app.post('/notification', function(req, res) {
     var data = req.body;
     // Check if user is online
     userIdToSocketIds(data.userId).then(function(socketIds) {
@@ -121,12 +121,12 @@ app.post('/email', function(req, res) {
         // online
         if (socketIds === '') {
             // Save it for when the user is back
-            var emailNotificationHash = 'email_notification_' + data.emailId;
-            client.hmset(emailNotificationHash, data);
+            var resourceNotificationHash = 'resource_notification_' + data.resourceId;
+            client.set(resourceNotificationHash, JSON.stringify(data));
 
             var userNotificationHash = 'user_notification_' + data.userId;
             client.get(userNotificationHash, function(err, unsentUserNotifications) {
-                var newUserNotifications = data.emailId;
+                var newUserNotifications = data.resourceId;
                 if (unsentUserNotifications) {
                     newUserNotifications = unsentUserNotifications.toString() + ',' + newUserNotifications;
                 }
@@ -200,7 +200,17 @@ io.on('connection', function(socket) {
                 if (reply) {
                     var stringReply = reply.toString();
                     var notificationIds = reply.split(',');
-                    console.log(notificationIds);
+                    for (var i = 0; i < notificationIds.length; i++) {
+                        notificationIds[i] = 'resource_notification_' + notificationIds[i];
+                    }
+                    client.mget(notificationIds, function (err, notifications) {
+                        for (var i = 0; i < notifications.length; i++) {
+                            var notification = JSON.parse(notifications[i]);
+                            socket.json.send(notification);
+                            client.del(notificationIds[i]);
+                        }
+                    });
+                    client.del(userNotificationHash);
                 }
             });
         }, function(error) {

@@ -19,10 +19,10 @@ Email notification
 
 ```
 {
-    "type": "email",
-    "userId": "4000",
+    "resouceName": "email",
     "resourceId": "4000",
-    "resourceCategory": "open"
+    "resourceAction": "open"
+    "userId": "4000",
 }
 ```
 
