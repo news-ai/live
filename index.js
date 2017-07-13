@@ -23,8 +23,90 @@ var elasticSearchClient = new elasticsearch.Client({
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
-  extended: true
+    extended: true
 }));
+
+String.prototype.hashCode = function() {
+    var hash = 5381;
+    var i = this.length;
+    while (i)
+        hash = (hash * 33) ^ this.charCodeAt(--i)
+    return hash >>> 0;
+}
+
+function generatePageTeamIdHash(page, teamId) {
+    var hash = page + teamId;
+    return hash.hashCode();
+}
+
+// map of socketId => userId
+function socketIdToUserIds(socketId) {
+    var deferred = Q.defer();
+
+    var socketIdHash = 'socket_' + socketId;
+    client.get(socketIdHash, function(err, userId) {
+        if (userId) {
+            deferred.resolve(userId.toString());
+        }
+        deferred.resolve('');
+    });
+
+    return deferred.promise;
+}
+
+// map of userId => socketId
+function userIdToSocketIds(userId) {
+    var deferred = Q.defer();
+
+    var userIdHash = 'user_' + userId;
+    client.get(userIdHash, function(err, socketId) {
+        if (socketId) {
+            deferred.resolve(socketId.toString());
+        }
+        deferred.resolve('');
+    });
+
+    return deferred.promise;
+}
+
+function validateUser(userId, authToken) {
+    var deferred = Q.defer();
+
+    elasticSearchClient.get({
+        index: 'users',
+        type: 'user',
+        id: userId
+    }, function(error, response) {
+        if (error) {
+            console.error(error);
+            deferred.reject(error);
+        } else {
+            if (response._source && response._source.data && response._source.data.LiveAccessToken) {
+                var now = new Date();
+                var expireDate = new Date(response._source.data.LiveAccessTokenExpire);
+                if (expireDate > now) {
+                    if (authToken === response._source.data.LiveAccessToken) {
+                        deferred.resolve(true);
+                    } else {
+                        var error = 'Live Access Token is invalid';
+                        console.error(error);
+                        deferred.reject(error);
+                    }
+                } else {
+                    var error = 'Live Access Token has expired';
+                    console.error(error);
+                    deferred.reject(error);
+                }
+            } else {
+                var error = 'User does not have live access token';
+                console.error(error);
+                deferred.reject(error);
+            }
+        }
+    });
+
+    return deferred.promise;
+}
 
 app.get('/', function(req, res) {
     res.sendFile(__dirname + '/index.html');
@@ -33,7 +115,7 @@ app.get('/', function(req, res) {
 app.post('/email', function(req, res) {
     var data = req.body;
     // Check if user is online
-    userIdToSocketIds(data.userId).then(function(socketIds){
+    userIdToSocketIds(data.userId).then(function(socketIds) {
         // If the user is not online then we add them
         // to redis, and notify them when they come
         // online
@@ -78,80 +160,6 @@ app.post('/email', function(req, res) {
         return;
     });
 });
-
-// map of socketId => userId
-function socketIdToUserIds(socketId) {
-    var deferred = Q.defer();
-
-    var socketIdHash = 'socket_' + socketId;
-    client.get(socketIdHash, function(err, reply) {
-        if (err) {
-            deferred.resolve('');
-        }
-        deferred.resolve(reply.toString());
-    });
-
-    return deferred.promise;
-}
-
-// map of userId => socketId
-function userIdToSocketIds(userId) {
-    var deferred = Q.defer();
-
-    var userIdHash = 'user_' + userId;
-    client.get(userIdHash, function(err, reply) {
-        if (reply) {
-            deferred.resolve(reply.toString());
-        }
-        deferred.resolve('');
-    });
-
-    return deferred.promise;
-}
-
-function validateUser(userId, authToken) {
-    var deferred = Q.defer();
-
-    elasticSearchClient.get({
-        index: 'users',
-        type: 'user',
-        id: userId
-    }, function(error, response) {
-        if (error) {
-            console.error(error);
-            deferred.reject(error);
-        } else {
-            if (response._source && response._source.data && response._source.data.LiveAccessToken) {
-                if (authToken === response._source.data.LiveAccessToken) {
-                    deferred.resolve(true);
-                } else {
-                    var error = 'Live Access Token is invalid';
-                    console.error(error);
-                    deferred.reject(error);
-                }
-            } else {
-                var error = 'User does not have live access token';
-                console.error(error);
-                deferred.reject(error);
-            }
-        }
-    });
-
-    return deferred.promise;
-}
-
-String.prototype.hashCode = function() {
-    var hash = 5381;
-    var i = this.length;
-    while (i)
-        hash = (hash * 33) ^ this.charCodeAt(--i)
-    return hash >>> 0;
-}
-
-function generatePageTeamIdHash(page, teamId) {
-    var hash = page + teamId;
-    return hash.hashCode();
-}
 
 io.on('connection', function(socket) {
     // On authentication connection (Initial connection)
@@ -238,11 +246,14 @@ io.on('connection', function(socket) {
         io.to(roomName).emit('message', changeDetails);
     });
 
+    // When a particular client disconnects
+    // then we update the redis settings so
+    // we don't send them notifications anymore
     socket.on('disconnect', function() {
         // Remove socketId => userId key
         var socketIdHash = 'socket_' + socket.id;
         client.get(socketIdHash, function(err, socketIdReplys) {
-            if (!err) {
+            if (socketIdReplys) {
                 // Remove socketId in userId => socketIds[]
                 var userId = socketIdReplys.toString();
 
