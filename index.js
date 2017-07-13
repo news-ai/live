@@ -46,7 +46,7 @@ function socketIdToUserIds(socketId) {
     var socketIdHash = 'socket_' + socketId;
     client.get(socketIdHash, function(err, userId) {
         if (userId) {
-            deferred.resolve(userId.toString());
+            deferred.resolve(userId);
         }
         deferred.resolve('');
     });
@@ -61,7 +61,7 @@ function userIdToSocketIds(userId) {
     var userIdHash = 'user_' + userId;
     client.get(userIdHash, function(err, socketId) {
         if (socketId) {
-            deferred.resolve(socketId.toString());
+            deferred.resolve(socketId);
         }
         deferred.resolve('');
     });
@@ -128,7 +128,7 @@ app.post('/notification', function(req, res) {
             client.get(userNotificationHash, function(err, unsentUserNotifications) {
                 var newUserNotifications = data.resourceId;
                 if (unsentUserNotifications) {
-                    newUserNotifications = unsentUserNotifications.toString() + ',' + newUserNotifications;
+                    newUserNotifications = unsentUserNotifications + ',' + newUserNotifications;
                 }
                 client.set(userNotificationHash, newUserNotifications);
 
@@ -181,10 +181,10 @@ io.on('connection', function(socket) {
             // Set redis for user-specific notifications
             // userId => socketIds[]
             var userIdHash = 'user_' + authDetails.userId;
-            client.get(userIdHash, function(err, reply) {
+            client.get(userIdHash, function(err, socketId) {
                 var socketIds = socket.id;
-                if (reply) {
-                    socketIds = reply.toString() + ',' + socketIds;
+                if (socketId) {
+                    socketIds = socketId + ',' + socketIds;
                 }
                 client.set(userIdHash, socketIds);
             });
@@ -196,10 +196,9 @@ io.on('connection', function(socket) {
             // Check if there are any pending notifications
             // for the user that is logged in
             var userNotificationHash = 'user_notification_' + authDetails.userId;
-            client.get(userNotificationHash, function(err, reply) {
-                if (reply) {
-                    var stringReply = reply.toString();
-                    var notificationIds = reply.split(',');
+            client.get(userNotificationHash, function(err, stringNotificationIds) {
+                if (stringNotificationIds) {
+                    var notificationIds = stringNotificationIds.split(',');
                     for (var i = 0; i < notificationIds.length; i++) {
                         notificationIds[i] = 'resource_notification_' + notificationIds[i];
                     }
@@ -262,18 +261,15 @@ io.on('connection', function(socket) {
     socket.on('disconnect', function() {
         // Remove socketId => userId key
         var socketIdHash = 'socket_' + socket.id;
-        client.get(socketIdHash, function(err, socketIdReplys) {
-            if (socketIdReplys) {
+        client.get(socketIdHash, function(err, userId) {
+            if (userId) {
                 // Remove socketId in userId => socketIds[]
-                var userId = socketIdReplys.toString();
-
                 // Update userId => socketIds[] field
                 // Remove the socket that has been removed
                 var userIdHash = 'user_' + userId;
                 client.get(userIdHash, function(err, userIdReply) {
-                    if (!err) {
-                        var socketIds = userIdReply.toString();
-                        socketIds = socketIds.split(',');
+                    if (userIdReply) {
+                        var socketIds = userIdReply.split(',');
 
                         var index = socketIds.indexOf(socket.id);
                         if (index > -1) {
