@@ -4,13 +4,13 @@
 <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
 <script>
     $(function() {
-        var socket = io();
+        var socket = io('https://live-1.newsai.org:443');
 
         // Connect to socket
         socket.on('connect', function() {
             var authDetails = {
                 'userId': '5749563331706880',
-                'authToken': '5749563331706880-4xrJhhS4o5FGwIJmBT4CbAonLoFhgSjY-P5aarT2YI=',
+                'authToken': '57495633317068807Td2Xz9s7VnY-rbHLnH51El9mLzPlfy2UPKRMeHfG-A=',
                 'teamId': '5178017471004672',
                 'page': 'https://tabulae.newsai.co/'
             };

@@ -108,10 +108,6 @@ function validateUser(userId, authToken) {
     return deferred.promise;
 }
 
-// app.get('/', function(req, res) {
-//     res.sendFile(__dirname + '/index.html');
-// });
-
 app.post('/notification', function(req, res) {
     var data = req.body;
     // Check if user is online
