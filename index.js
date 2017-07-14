@@ -118,12 +118,11 @@ app.post('/notification', function(req, res) {
                 if (unsentNotifications) {
                     unsentNotifications = unsentNotifications.split(',');
 
-                    // If the new Id isn't already in the notification system
-                    if (unsentNotifications.indexOf(data.resourceId) === -1) {
-                        newUserNotifications = unsentNotifications.concat(newUserNotifications);
-                    } else {
-                        // It already is in the notification system
+                    // Remove duplicates
+                    if (data.resourceId in unsentNotifications) {
                         newUserNotifications = unsentNotifications;
+                    } else {
+                        newUserNotifications = unsentNotifications.concat(newUserNotifications);
                     }
                 }
                 newUserNotifications = newUserNotifications.join(',');
