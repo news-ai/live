@@ -120,7 +120,7 @@ app.post('/notification', function(req, res) {
 
                     var dataResourceString = data.resourceId.toString();
                     // Remove duplicates
-                    if (data.resourceId in unsentNotifications) {
+                    if (dataResourceString in unsentNotifications) {
                         newUserNotifications = unsentNotifications;
                     } else {
                         newUserNotifications = unsentNotifications.concat(newUserNotifications);
