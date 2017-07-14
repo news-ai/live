@@ -117,7 +117,14 @@ app.post('/notification', function(req, res) {
                 var newUserNotifications = [data.resourceId];
                 if (unsentNotifications) {
                     unsentNotifications = unsentNotifications.split(',');
-                    newUserNotifications = unsentNotifications.concat(newUserNotifications);
+
+                    // If the new Id isn't already in the notification system
+                    if (unsentNotifications.indexOf(data.resourceId) == -1) {
+                        newUserNotifications = unsentNotifications.concat(newUserNotifications);
+                    } else {
+                        // It already is in the notification system
+                        newUserNotifications = unsentNotifications;
+                    }
                 }
                 newUserNotifications = newUserNotifications.join(',');
                 client.set(userNotificationHash, newUserNotifications);
@@ -134,7 +141,7 @@ app.post('/notification', function(req, res) {
             // be the newest one
             socketIds = socketIds.split(',');
             var last_socket_id = socketIds[socketIds.length - 1];
-            io.sockets.connected[last_socket_id].json.send(data);
+            io.sockets.connected[last_socket_id].json.send([data]);
 
             res.setHeader('Content-Type', 'application/json');
             res.send(JSON.stringify({
@@ -193,11 +200,13 @@ io.on('connection', function(socket) {
                         notificationIds[i] = 'resource_notification_' + notificationIds[i];
                     }
                     client.mget(notificationIds, function (err, notifications) {
+                        var JSONNotifications = [];
                         for (var i = 0; i < notifications.length; i++) {
                             var notification = JSON.parse(notifications[i]);
-                            socket.json.send(notification);
+                            JSONNotifications.push(notification);
                             client.del(notificationIds[i]);
                         }
+                        socket.json.send(JSONNotifications);
                     });
                     client.del(userNotificationHash);
                 }

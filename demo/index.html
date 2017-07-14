@@ -35,27 +35,29 @@
                     console.log('Failed to authenticate');
                 } else {
                     // Fake page change
-                    var fakePageChange = {
-                        'resourceName': 'page',
-                        'page': 'https://tabulae.newsai.co/tables/5326642465472512',
-                        'teamId': '5178017471004672'
-                    };
-                    socket.emit('change', fakePageChange);
+                    // var fakePageChange = {
+                    //     'resourceName': 'page',
+                    //     'page': 'https://tabulae.newsai.co/tables/5326642465472512',
+                    //     'teamId': '5178017471004672'
+                    // };
+                    // socket.emit('change', fakePageChange);
 
-                    // Fake contact change
-                    var fakeContactChange = {
-                        'resourceName': 'contact',
-                        "resourceId": "4000",
-                        'page': 'https://tabulae.newsai.co/tables/5326642465472512',
-                        "change": "{json string}"
-                    };
-                    socket.emit('change', fakeContactChange);
+                    // // Fake contact change
+                    // var fakeContactChange = {
+                    //     'resourceName': 'contact',
+                    //     "resourceId": "4000",
+                    //     'page': 'https://tabulae.newsai.co/tables/5326642465472512',
+                    //     "change": "{json string}"
+                    // };
+                    // socket.emit('change', fakeContactChange);
 
                     // Fake list change
                 }
             } else {
                 // Messages that come in when other things are changing
-                console.log(msg);
+                var notification = msg;
+                notification.data = JSON.parse(notification.data);
+                console.log(notification);
             }
         });
 
