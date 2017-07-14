@@ -118,6 +118,7 @@ app.post('/notification', function(req, res) {
                 if (unsentNotifications) {
                     unsentNotifications = unsentNotifications.split(',');
 
+                    var dataResourceString = data.resourceId.toString();
                     // Remove duplicates
                     if (data.resourceId in unsentNotifications) {
                         newUserNotifications = unsentNotifications;
