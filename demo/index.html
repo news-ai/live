@@ -55,9 +55,11 @@
                 }
             } else {
                 // Messages that come in when other things are changing
-                var notification = msg;
-                notification.data = JSON.parse(notification.data);
-                console.log(notification);
+                var notifications = msg;
+                for (var i = 0; i < notifications.length; i++) {
+                    notifications[i].data = JSON.parse(notifications[i].data);
+                    console.log(notifications[i]);
+                }
             }
         });
 
