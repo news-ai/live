@@ -82,18 +82,10 @@ function validateUser(userId, authToken) {
             deferred.reject(error);
         } else {
             if (response._source && response._source.data && response._source.data.LiveAccessToken) {
-                var now = new Date();
-                var expireDate = new Date(response._source.data.LiveAccessTokenExpire);
-                if (expireDate > now) {
-                    if (authToken === response._source.data.LiveAccessToken) {
-                        deferred.resolve(true);
-                    } else {
-                        var error = 'Live Access Token is invalid';
-                        console.error(error);
-                        deferred.reject(error);
-                    }
+                if (authToken === response._source.data.LiveAccessToken) {
+                    deferred.resolve(true);
                 } else {
-                    var error = 'Live Access Token has expired';
+                    var error = 'Live Access Token is invalid';
                     console.error(error);
                     deferred.reject(error);
                 }
@@ -121,11 +113,13 @@ app.post('/notification', function(req, res) {
             client.set(resourceNotificationHash, JSON.stringify(data));
 
             var userNotificationHash = 'user_notification_' + data.userId;
-            client.get(userNotificationHash, function(err, unsentUserNotifications) {
-                var newUserNotifications = data.resourceId;
-                if (unsentUserNotifications) {
-                    newUserNotifications = unsentUserNotifications + ',' + newUserNotifications;
+            client.get(userNotificationHash, function(err, unsentNotifications) {
+                var newUserNotifications = [data.resourceId];
+                if (unsentNotifications) {
+                    unsentNotifications = unsentNotifications.split(',');
+                    newUserNotifications = unsentNotifications.concat(newUserNotifications);
                 }
+                newUserNotifications = newUserNotifications.join(',');
                 client.set(userNotificationHash, newUserNotifications);
 
                 res.setHeader('Content-Type', 'application/json');
