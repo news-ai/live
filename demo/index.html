@@ -4,8 +4,8 @@
 <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
 <script>
     $(function() {
-        var socket = io();
-        // var socket = io('https://live-1.newsai.org:443');
+        // var socket = io();
+        var socket = io('https://live-1.newsai.org:443');
 
         // Connect to socket
         socket.on('connect', function() {
@@ -38,12 +38,18 @@
                     var fakePageChange = {
                         'resourceName': 'page',
                         'page': 'https://tabulae.newsai.co/tables/5326642465472512',
-                        'userId': '5749563331706880',
                         'teamId': '5178017471004672'
                     };
                     socket.emit('change', fakePageChange);
 
                     // Fake contact change
+                    var fakeContactChange = {
+                        'resourceName': 'contact',
+                        "resourceId": "4000",
+                        'page': 'https://tabulae.newsai.co/tables/5326642465472512',
+                        "change": "{json string}"
+                    };
+                    socket.emit('change', fakeContactChange);
 
                     // Fake list change
                 }

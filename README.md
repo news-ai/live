@@ -55,6 +55,8 @@ Page change
 ```
 {
     "resourceName": "page",
-    "page": "https://tabulae.newsai.co/tables/5326642465472512"
+    "page": "https://tabulae.newsai.co/tables/5326642465472512",
+    "userId": "5749563331706880",
+    "teamId": "5178017471004672"
 }
 ```
