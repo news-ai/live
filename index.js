@@ -199,7 +199,7 @@ io.on('connection', function(socket) {
                     for (var i = 0; i < notificationIds.length; i++) {
                         notificationIds[i] = 'resource_notification_' + notificationIds[i];
                     }
-                    client.mget(notificationIds, function (err, notifications) {
+                    client.mget(notificationIds, function(err, notifications) {
                         var JSONNotifications = [];
                         for (var i = 0; i < notifications.length; i++) {
                             var notification = JSON.parse(notifications[i]);
@@ -295,7 +295,15 @@ io.on('connection', function(socket) {
     });
 });
 
-client.flushall(function(err, succeeded) {
+client.keys('*', function(err, keys) {
+    if (err) return console.log(err);
+
+    for (var i = 0, len = keys.length; i < len; i++) {
+        if (keys[i].indexOf('user') > -1 || keys[i].indexOf('socket') > -1) {
+            client.del(keys[i]);
+        }
+    }
+
     http.listen(port, function() {
         console.log('listening on *:' + port);
     });
