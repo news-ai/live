@@ -298,8 +298,13 @@ io.on('connection', function(socket) {
 client.keys('*', function(err, keys) {
     if (err) return console.log(err);
 
+    // When it is restarted remove all user and socket
+    // redis keys. When the server disconnects we reset socketIds
+    // and the ones stored don't get removed.
+    // We don't want to remove everything since we have notification
+    // data left.
     for (var i = 0, len = keys.length; i < len; i++) {
-        if (keys[i].indexOf('user') > -1 || keys[i].indexOf('socket') > -1) {
+        if ((keys[i].indexOf('user') > -1 && keys[i].indexOf('notification') == -1) || keys[i].indexOf('socket') > -1) {
             client.del(keys[i]);
         }
     }

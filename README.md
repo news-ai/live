@@ -19,7 +19,7 @@ Email notification
 
 ```
 {
-    "resouceName": "email",
+    "resourceName": "email",
     "resourceId": "4000",
     "resourceAction": "open"
     "userId": "4000",
