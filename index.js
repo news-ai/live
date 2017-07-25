@@ -137,11 +137,13 @@ app.post('/notification', function(req, res) {
             });
         } else {
             // Send the notification since they are connected
-            // We will message the first one since it will
-            // be the newest one
+            // We will message all of them that there has
+            // been a new notification.
             socketIds = socketIds.split(',');
-            var last_socket_id = socketIds[socketIds.length - 1];
-            io.sockets.connected[last_socket_id].json.send([data]);
+            for (var i = 0; i < socketIds.length; i++) {
+                var socketId = socketIds[i];
+                io.sockets.connected[socketId].json.send([data]);
+            }
 
             res.setHeader('Content-Type', 'application/json');
             res.send(JSON.stringify({
