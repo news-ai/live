@@ -315,3 +315,41 @@ client.keys('*', function(err, keys) {
         console.log('listening on *:' + port);
     });
 });
+
+setInterval(function() {
+    client.keys('user_*', function(err, keys) {
+        // Go through the users & see if their socket Ids are still valid
+        // if not then we remove them
+        for (var i = 0; i < keys.length; i++) {
+            if (keys[i].indexOf('notification') == -1) {
+                var userIdHash = keys[i];
+
+                // Get all the sockets of the current user
+                client.get(keys[i], function(err, userSockets) {
+                    // Create an array of redis socketIds the user would have
+                    userSockets = userSockets.split(',');
+                    for (var x = 0; x < userSockets.length; x++) {
+                        userSockets[x] = 'socket_' + userSockets[x];
+                    }
+                    // Get all of the user sockets so we can see
+                    // which ones are active & which ones are not.
+                    client.mget(userSockets, function(err, userSocketConnections) {
+                        var newSocketArray = [];
+                        for (var x = 0; x < userSocketConnections.length; x++) {
+                            if (userSocketConnections[x]) {
+                                userSockets[x] = userSockets[x].replace('socket_', '');
+                                newSocketArray.push(userSockets[x]);
+                            }
+                        }
+                        if (newSocketArray.length === 0) {
+                            client.del(userIdHash);
+                        } else {
+                            var socketIds = newSocketArray.join(',');
+                            client.set(userIdHash, socketIds);
+                        }
+                    });
+                });
+            }
+        }
+    });
+}, 3 * 60 * 1000);
