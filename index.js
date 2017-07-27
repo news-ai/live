@@ -353,12 +353,14 @@ setInterval(function() {
                         }
                     }
 
-                    var userIdHash = 'user_' + userSocketConnections[0];
-                    if (newSocketArray.length === 0) {
-                        client.del(userIdHash);
-                    } else {
-                        var socketIds = newSocketArray.join(',');
-                        client.set(userIdHash, socketIds);
+                    if (userSocketConnections.length > 0) {
+                        var userIdHash = 'user_' + userSocketConnections[0];
+                        if (newSocketArray.length === 0) {
+                            client.del(userIdHash);
+                        } else {
+                            var socketIds = newSocketArray.join(',');
+                            client.set(userIdHash, socketIds);
+                        }
                     }
                 });
             }
