@@ -297,6 +297,9 @@ io.on('connection', function(socket) {
     });
 });
 
+// Before we start, we want to remove some previous connections
+// so when they disconnect & reconnect, we don't have a bunch of
+// dead connections lying around.
 client.keys('*', function(err, keys) {
     if (err) return console.log(err);
 
@@ -317,39 +320,48 @@ client.keys('*', function(err, keys) {
 });
 
 setInterval(function() {
+    console.log('Running User Clearing Interval')
+
+    // This looks through all users to see if the socket connections
+    // in their key-value store are still operational.
     client.keys('user_*', function(err, keys) {
         // Go through the users & see if their socket Ids are still valid
         // if not then we remove them
+        userIdHashs = [];
         for (var i = 0; i < keys.length; i++) {
             if (keys[i].indexOf('notification') == -1) {
-                var userIdHash = keys[i];
-
-                // Get all the sockets of the current user
-                client.get(keys[i], function(err, userSockets) {
-                    // Create an array of redis socketIds the user would have
-                    userSockets = userSockets.split(',');
-                    for (var x = 0; x < userSockets.length; x++) {
-                        userSockets[x] = 'socket_' + userSockets[x];
-                    }
-                    // Get all of the user sockets so we can see
-                    // which ones are active & which ones are not.
-                    client.mget(userSockets, function(err, userSocketConnections) {
-                        var newSocketArray = [];
-                        for (var x = 0; x < userSocketConnections.length; x++) {
-                            if (userSocketConnections[x]) {
-                                userSockets[x] = userSockets[x].replace('socket_', '');
-                                newSocketArray.push(userSockets[x]);
-                            }
-                        }
-                        if (newSocketArray.length === 0) {
-                            client.del(userIdHash);
-                        } else {
-                            var socketIds = newSocketArray.join(',');
-                            client.set(userIdHash, socketIds);
-                        }
-                    });
-                });
+                userIdHashs.push(keys[i]);
             }
         }
+
+        // Get all the sockets of the current user
+        client.mget(userIdHashs, function(err, userSocketsArray) {
+            for (var i = 0; i < userSocketsArray.length; i++) {
+                var userSockets = userSocketsArray[i].split(',');
+                for (var x = 0; x < userSockets.length; x++) {
+                    userSockets[x] = 'socket_' + userSockets[x];
+                }
+
+                // Get all of the user sockets so we can see
+                // which ones are active & which ones are not.
+                client.mget(userSockets, function(err, userSocketConnections) {
+                    var newSocketArray = [];
+                    for (var y = 0; y < userSocketConnections.length; y++) {
+                        if (userSocketConnections[y]) {
+                            userSockets[y] = userSockets[y].replace('socket_', '');
+                            newSocketArray.push(userSockets[y]);
+                        }
+                    }
+
+                    var userIdHash = 'user_' + userSocketConnections[0];
+                    if (newSocketArray.length === 0) {
+                        client.del(userIdHash);
+                    } else {
+                        var socketIds = newSocketArray.join(',');
+                        client.set(userIdHash, socketIds);
+                    }
+                });
+            }
+        });
     });
 }, 3 * 60 * 1000);
