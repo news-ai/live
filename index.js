@@ -201,16 +201,18 @@ io.on('connection', function(socket) {
                     for (var i = 0; i < notificationIds.length; i++) {
                         notificationIds[i] = 'resource_notification_' + notificationIds[i];
                     }
+
+                    // If there are then we send the user all the notifications
+                    // we don't delete them here. We delete them when we
+                    // get an ping that the user has read their notifications
                     client.mget(notificationIds, function(err, notifications) {
                         var JSONNotifications = [];
                         for (var i = 0; i < notifications.length; i++) {
                             var notification = JSON.parse(notifications[i]);
                             JSONNotifications.push(notification);
-                            client.del(notificationIds[i]);
                         }
                         socket.json.send(JSONNotifications);
                     });
-                    client.del(userNotificationHash);
                 }
             });
         }, function(error) {
@@ -221,6 +223,39 @@ io.on('connection', function(socket) {
                 'status': 'failure'
             });
             socket.disconnect(true);
+        });
+    });
+
+    socket.on('notifications', function(notificationDetails) {
+        var socketIdHash = 'socket_' + socket.id;
+        client.get(socketIdHash, function(err, userId) {
+            if (userId) {
+                // To tag that the notifications have been read
+                if (notificationDetails.action === 'read') {
+                    var userNotificationHash = 'user_notification_' + userId;
+                    client.get(userNotificationHash, function(err, stringNotificationIds) {
+                        if (stringNotificationIds) {
+                            var notificationIds = stringNotificationIds.split(',');
+                            for (var i = 0; i < notificationIds.length; i++) {
+                                notificationIds[i] = 'resource_notification_' + notificationIds[i];
+                            }
+                            client.mget(notificationIds, function(err, notifications) {
+                                for (var i = 0; i < notifications.length; i++) {
+                                    client.del(notificationIds[i]);
+                                }
+
+                                // Tell user that the notifications have been read
+                                socket.json.send({
+                                    'type': 'notification',
+                                    'action': 'read'
+                                });
+                            });
+                            client.del(userNotificationHash);
+                        }
+                    });
+                }
+            }
+
         });
     });
 
