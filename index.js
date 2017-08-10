@@ -226,7 +226,7 @@ io.on('connection', function(socket) {
         });
     });
 
-    socket.on('notifications', function(notificationDetails) {
+    socket.on('notification', function(notificationDetails) {
         var socketIdHash = 'socket_' + socket.id;
         client.get(socketIdHash, function(err, userId) {
             if (userId) {
@@ -240,17 +240,36 @@ io.on('connection', function(socket) {
                                 notificationIds[i] = 'resource_notification_' + notificationIds[i];
                             }
                             client.mget(notificationIds, function(err, notifications) {
-                                for (var i = 0; i < notifications.length; i++) {
-                                    client.del(notificationIds[i]);
-                                }
-
                                 // Tell user that the notifications have been read
-                                socket.json.send({
-                                    'type': 'notification',
-                                    'action': 'read'
+                                // Go through all the sockets the user has
+                                userIdToSocketIds(userId).then(function(socketIds) {
+                                    socketIds = socketIds.split(',');
+                                    for (var i = 0; i < socketIds.length; i++) {
+                                        var socketId = socketIds[i];
+                                        io.sockets.connected[socketId].json.send({
+                                            'type': 'notification',
+                                            'action': 'read'
+                                        });
+                                    }
+
+                                    // Delete previous notifications
+                                    // and delete the user notifications that
+                                    // map that notification.
+                                    for (var i = 0; i < notifications.length; i++) {
+                                        client.del(notificationIds[i]);
+                                    }
+                                    client.del(userNotificationHash);
+                                }, function(error) {
+                                    // If it is not valid then disconnect their socket
+                                    // And message them back
+                                    console.error(error);
+                                    socket.json.send({
+                                        'type': 'notification',
+                                        'error': error,
+                                        'action': 'not read'
+                                    });
                                 });
                             });
-                            client.del(userNotificationHash);
                         }
                     });
                 }
