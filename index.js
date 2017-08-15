@@ -134,7 +134,7 @@ app.post('/notification', function(req, res) {
                 // Send the notification since they are connected
                 // We will message all of them that there has
                 // been a new notification.
-                if (userSockets !== '') {
+                if (socketIds !== '') {
                     socketIds = socketIds.split(',');
                     for (var i = 0; i < socketIds.length; i++) {
                         var socketId = socketIds[i];
