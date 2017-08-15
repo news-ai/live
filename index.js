@@ -104,45 +104,38 @@ app.post('/notification', function(req, res) {
     var data = req.body;
     // Check if user is online
     userIdToSocketIds(data.userId).then(function(socketIds) {
-        // If the user is not online then we add them
-        // to redis, and notify them when they come
-        // online
-        if (socketIds === '') {
-            // Save it for when the user is back
-            var resourceNotificationHash = 'resource_notification_' + data.resourceId;
-            client.set(resourceNotificationHash, JSON.stringify(data));
+        // We're setting the notification anyways.
+        // Because we want to send it to the user and add it in-case
+        // they don't click the notifications button in that session.
+        var resourceNotificationHash = 'resource_notification_' + data.resourceId;
+        client.set(resourceNotificationHash, JSON.stringify(data));
 
-            var userNotificationHash = 'user_notification_' + data.userId;
-            client.get(userNotificationHash, function(err, unsentNotifications) {
-                var newUserNotifications = [data.resourceId];
-                if (unsentNotifications) {
-                    unsentNotifications = unsentNotifications.split(',');
-                    var dataResourceString = data.resourceId.toString();
+        var userNotificationHash = 'user_notification_' + data.userId;
+        client.get(userNotificationHash, function(err, unsentNotifications) {
+            var newUserNotifications = [data.resourceId];
+            if (unsentNotifications) {
+                unsentNotifications = unsentNotifications.split(',');
+                var dataResourceString = data.resourceId.toString();
 
-                    // Remove duplicates
-                    if (unsentNotifications.indexOf(dataResourceString) > -1) {
-                        newUserNotifications = unsentNotifications;
-                    } else {
-                        newUserNotifications = unsentNotifications.concat(newUserNotifications);
-                    }
+                // Remove duplicates
+                if (unsentNotifications.indexOf(dataResourceString) > -1) {
+                    newUserNotifications = unsentNotifications;
+                } else {
+                    newUserNotifications = unsentNotifications.concat(newUserNotifications);
                 }
-                newUserNotifications = newUserNotifications.join(',');
-                client.set(userNotificationHash, newUserNotifications);
+            }
+            newUserNotifications = newUserNotifications.join(',');
+            client.set(userNotificationHash, newUserNotifications);
 
-                res.setHeader('Content-Type', 'application/json');
-                res.send(JSON.stringify({
-                    data: data
-                }));
-                return;
-            });
-        } else {
             // Send the notification since they are connected
             // We will message all of them that there has
             // been a new notification.
-            socketIds = socketIds.split(',');
-            for (var i = 0; i < socketIds.length; i++) {
-                var socketId = socketIds[i];
-                io.sockets.connected[socketId].json.send([data]);
+            if (userSockets !== '') {
+                socketIds = socketIds.split(',');
+                for (var i = 0; i < socketIds.length; i++) {
+                    var socketId = socketIds[i];
+                    io.sockets.connected[socketId].json.send([data]);
+                }
             }
 
             res.setHeader('Content-Type', 'application/json');
@@ -150,7 +143,7 @@ app.post('/notification', function(req, res) {
                 data: data
             }));
             return;
-        }
+        });
     }, function(error) {
         res.setHeader('Content-Type', 'application/json');
         res.send(JSON.stringify({
