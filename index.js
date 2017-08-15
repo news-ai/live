@@ -110,6 +110,8 @@ app.post('/notification', function(req, res) {
         var resourceNotificationHash = 'resource_notification_' + data.resourceId;
         client.set(resourceNotificationHash, JSON.stringify(data));
 
+        var isDuplicateNotification = false;
+
         var userNotificationHash = 'user_notification_' + data.userId;
         client.get(userNotificationHash, function(err, unsentNotifications) {
             var newUserNotifications = [data.resourceId];
@@ -119,6 +121,7 @@ app.post('/notification', function(req, res) {
 
                 // Remove duplicates
                 if (unsentNotifications.indexOf(dataResourceString) > -1) {
+                    isDuplicateNotification = true;
                     newUserNotifications = unsentNotifications;
                 } else {
                     newUserNotifications = unsentNotifications.concat(newUserNotifications);
@@ -127,14 +130,16 @@ app.post('/notification', function(req, res) {
             newUserNotifications = newUserNotifications.join(',');
             client.set(userNotificationHash, newUserNotifications);
 
-            // Send the notification since they are connected
-            // We will message all of them that there has
-            // been a new notification.
-            if (userSockets !== '') {
-                socketIds = socketIds.split(',');
-                for (var i = 0; i < socketIds.length; i++) {
-                    var socketId = socketIds[i];
-                    io.sockets.connected[socketId].json.send([data]);
+            if (!isDuplicateNotification) {
+                // Send the notification since they are connected
+                // We will message all of them that there has
+                // been a new notification.
+                if (userSockets !== '') {
+                    socketIds = socketIds.split(',');
+                    for (var i = 0; i < socketIds.length; i++) {
+                        var socketId = socketIds[i];
+                        io.sockets.connected[socketId].json.send([data]);
+                    }
                 }
             }
 
