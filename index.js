@@ -374,7 +374,7 @@ setInterval(function() {
     client.keys('user_*', function(err, keys) {
         // Go through the users & see if their socket Ids are still valid
         // if not then we remove them
-        userIdHashs = [];
+        var userIdHashs = [];
         for (var i = 0; i < keys.length; i++) {
             if (keys[i].indexOf('notification') == -1) {
                 userIdHashs.push(keys[i]);
