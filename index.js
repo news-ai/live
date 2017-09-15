@@ -132,10 +132,20 @@ app.post('/notification', function(req, res) {
             // been a new notification.
             if (socketIds !== '') {
                 socketIds = socketIds.split(',');
+                var newSocketIds = [];
                 for (var i = 0; i < socketIds.length; i++) {
                     var socketId = socketIds[i];
-                    io.sockets.connected[socketId].json.send([data]);
+                    if (socketId in io.sockets.connected) {
+                        io.sockets.connected[socketId].json.send([data]);
+                        newSocketIds.push(socketId);
+                    }
                 }
+
+                // Automatically update the user hash
+                // and remove if any userIdHash are invalid
+                var userIdHash = 'user_' + data.userId;
+                var newSocketIdStrings = newSocketIds.join(',');
+                client.set(userIdHash, newSocketIdStrings);
             }
 
             res.setHeader('Content-Type', 'application/json');
