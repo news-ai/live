@@ -188,7 +188,24 @@ io.on('connection', function(socket) {
                 if (socketId) {
                     socketIds = socketId + ',' + socketIds;
                 }
+
                 client.set(userIdHash, socketIds);
+
+                if (socketIds !== '') {
+                    var socketIdsArray = socketIds.split(',');
+                    var updatedSocketIdsArray = [];
+                    for (var i = 0; i < socketIdsArray.length; i++) {
+                        if (socketIdsArray[i] !== '' && socketIdsArray[i] in io.sockets.connected) {
+                            updatedSocketIdsArray.push(socketIdsArray[i]);
+                        }
+                    }
+
+                    if (updatedSocketIdsArray.length > 0) {
+                        var updatedSocketIds = updatedSocketIdsArray.join(',');
+                        client.set(userIdHash, updatedSocketIds);
+                    }
+
+                }
             });
 
             // socketId => userId
@@ -336,6 +353,9 @@ io.on('connection', function(socket) {
         // Remove socketId => userId key
         var socketIdHash = 'socket_' + socket.id;
         client.get(socketIdHash, function(err, userId) {
+            if (err) {
+                console.error(err);
+            }
             if (userId) {
                 // Remove socketId in userId => socketIds[]
                 // Update userId => socketIds[] field
