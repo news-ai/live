@@ -191,6 +191,8 @@ io.on('connection', function(socket) {
 
                 client.set(userIdHash, socketIds);
 
+                // Just go over old socketIds and see if
+                // anyone of them are not active anymore.
                 if (socketIds !== '') {
                     var socketIdsArray = socketIds.split(',');
                     var updatedSocketIdsArray = [];

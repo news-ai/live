@@ -13,7 +13,7 @@ setInterval(function() {
         // if not then we remove them
         var userIdHashs = [];
         for (var i = 0; i < keys.length; i++) {
-            if (keys[i].indexOf('notification') == -1) {
+            if (keys[i].indexOf('notification') === -1) {
                 userIdHashs.push(keys[i]);
             }
         }
@@ -30,6 +30,9 @@ setInterval(function() {
                     // Get all of the user sockets so we can see
                     // which ones are active & which ones are not.
                     client.mget(userSockets, function(err, userSocketConnections) {
+                        if (err) {
+                            console.error(err);
+                        }
                         if (userSocketConnections && userSocketConnections.length > 0) {
                             var newSocketArray = [];
 
