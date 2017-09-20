@@ -12,9 +12,11 @@ setInterval(function() {
         // Go through the users & see if their socket Ids are still valid
         // if not then we remove them
         var userIdHashs = [];
+        var userIdHashsDuplicate = [];
         for (var i = 0; i < keys.length; i++) {
             if (keys[i].indexOf('notification') === -1) {
                 userIdHashs.push(keys[i]);
+                userIdHashsDuplicate.push(keys[i]);
             }
         }
 
@@ -45,13 +47,13 @@ setInterval(function() {
                             }
 
                             if (newSocketArray.length === 0) {
-                                client.del(userIdHashs[i]);
+                                client.del(userIdHashsDuplicate[i]);
                             } else {
                                 var socketIds = newSocketArray.join(',');
-                                client.set(userIdHashs[i], socketIds);
+                                client.set(userIdHashsDuplicate[i], socketIds);
                             }
                         } else {
-                            client.del(userIdHashs[i]);
+                            client.del(userIdHashsDuplicate[i]);
                         }
                     });
                 }
