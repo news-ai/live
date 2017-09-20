@@ -232,6 +232,9 @@ io.on('connection', function(socket) {
     socket.on('notification', function(notificationDetails) {
         var socketIdHash = 'socket_' + socket.id;
         client.get(socketIdHash, function(err, userId) {
+            if (err) {
+                console.log(err);
+            }
             if (userId) {
                 // To tag that the notifications have been read
                 if (notificationDetails.notification === 'read') {
@@ -277,7 +280,6 @@ io.on('connection', function(socket) {
                     });
                 }
             }
-
         });
     });
 
@@ -352,6 +354,10 @@ io.on('connection', function(socket) {
             }
         });
     });
+});
+
+client.on('error', function (err) {
+    console.log("Error " + err);
 });
 
 // Before we start, we want to remove some previous connections
